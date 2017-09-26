@@ -173,25 +173,30 @@ class matrix:
 
 def kalman_filter(x, P):
     for n in range(len(measurements)):
+        # prediction
+        x = F * x + u
+        P = F * P * F.transpose()
+
         # measurement update
-        Z = matrix([[measurements[n]]])
-        y = Z - H * x
+        Z = matrix([measurements[n]])
+        y = Z.transpose() - H * x
         s = H * P * H.transpose() + R
         k = P * H.transpose() * s.inverse()
         x = x + k * y
         P = (I - k * H) * P
-        # prediction
-        x = F * x
-        P = F * P * F.transpose()
         print "x: " + str(x)
         print "P: " + str(P)
+    print 'x= '
+    x.show()
+    print 'P= '
+    P.show()
     return x, P
 
 
 ############################################
 ### use the code below to test your filter!
 ############################################
-
+''''
 measurements = [1, 2, 3]
 
 x = matrix([[0.], [0.]])  # initial state (location and velocity)
@@ -206,3 +211,49 @@ print(kalman_filter(x, P))
 # output should be:
 # x: [[3.9996664447958645], [0.9999998335552873]]
 # P: [[2.3318904241194827, 0.9991676099921091], [0.9991676099921067, 0.49950058263974184]]
+'''
+
+########################################
+
+print "### 4-dimensional example ###"
+
+measurements = [[5., 10.], [6., 8.], [7., 6.], [8., 4.], [9., 2.], [10., 0.]]
+initial_xy = [4., 12.]
+
+# measurements = [[1., 4.], [6., 0.], [11., -4.], [16., -8.]]
+# initial_xy = [-4., 8.]
+
+# measurements = [[1., 17.], [1., 15.], [1., 13.], [1., 11.]]
+# initial_xy = [1., 19.]
+
+dt = 0.1
+
+x = matrix([[initial_xy[0]], [initial_xy[1]], [0.], [0.]])
+# initial state (location and velocity)
+u = matrix([[0.], [0.], [0.], [0.]])  # external motion
+
+#### DO NOT MODIFY ANYTHING ABOVE HERE ####
+#### fill this in, remember to use the matrix() function!: ####
+
+P = matrix([[0., 0., 0., 0.],
+            [0., 0., 0., 0.],
+            [0., 0., 1000., 0.],
+            [0., 0., 0., 1000.]])
+# initial uncertainty: 0 for positions x and y, 1000 for the two velocities
+F = matrix([[1., 0., 0.1, 0.],
+            [0., 1., 0., 0.1],
+            [0., 0., 1., 0.],
+            [0., 0., 0., 1.]])
+# next state function: generalize the 2d version to 4d
+H = matrix([[1., 0., 0., 0.],
+            [0., 1., 0., 0.]])
+# measurement function: reflect the fact that we observe x and y but not the two velocities
+R = matrix([[0.1, 0.],
+            [0., 0.1]])
+# measurement uncertainty: use 2x2 matrix with 0.1 as main diagonal
+I = matrix([[1., 0., 0., 0.],
+            [0., 1., 0., 0.],
+            [0., 0., 1., 0.],
+            [0., 0., 0., 1.]])
+# 4d identity matrix
+kalman_filter(x, P)
