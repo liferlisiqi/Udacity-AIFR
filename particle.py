@@ -108,9 +108,9 @@ p = p2
 w = []
 # insert code here!
 for i in range(N):
-    w.append(p[i].measurement_prob(p[i].sense()))
-    #w.append(p[i].measurement_prob(Z)) why the parament of measurement_prob() is only Z?
-#print w  # Please print w for grading purposes.
+    #w.append(p[i].measurement_prob(p[i].sense()))
+    w.append(p[i].measurement_prob(Z)) #why the parament of measurement_prob() is only Z?
+#print w
 
 #### DON'T MODIFY ANYTHING ABOVE HERE! ENTER CODE BELOW ####
 # You should make sure that p3 contains a list with particles
@@ -124,6 +124,18 @@ for i in range(1 , N):
 #print nw
 p3 = []
 for i in range(N):
-    p3.append(p[i])
-print random.random()
+    ran = random.random()
+    l = 0
+    r = N-1
+    while r - l > 1:
+        m = l + (r - l) / 2
+        if ran < nw[m]:
+            r = m
+        elif ran > nw[m]:
+            l = m
+        else:
+            p3.append(p[m])
+            continue
+        p3.append(p[r])
+print p3
 
