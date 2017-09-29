@@ -33,6 +33,7 @@ class robot:
         self.sense_noise = float(new_s_noise);
 
     def sense(self):
+        # return dstances with four landmark
         Z = []
         for i in range(len(landmarks)):
             dist = sqrt((self.x - landmarks[i][0]) ** 2 + (self.y - landmarks[i][1]) ** 2)
@@ -74,10 +75,21 @@ class robot:
         for i in range(len(landmarks)):
             dist = sqrt((self.x - landmarks[i][0]) ** 2 + (self.y - landmarks[i][1]) ** 2)
             prob *= self.Gaussian(dist, self.sense_noise, measurement[i])
+            # using Gaussian distribution to measure the probability weather the particle is near robot
         return prob
 
     def __repr__(self):
         return '[x=%.6s y=%.6s orient=%.6s]' % (str(self.x), str(self.y), str(self.orientation))
+
+#calculate the mean error of all the particles with the robot
+def eval(r, p):
+    sum = 0.0;
+    for i in range(len(p)):  # calculate mean error
+        dx = (p[i].x - r.x + (world_size / 2.0)) % world_size - (world_size / 2.0)
+        dy = (p[i].y - r.y + (world_size / 2.0)) % world_size - (world_size / 2.0)
+        err = sqrt(dx * dx + dy * dy)
+        sum += err
+    return sum / float(len(p))
 
 
 # myrobot = robot()
@@ -94,7 +106,10 @@ myrobot = myrobot.move(0.1, 5.0)
 Z = myrobot.sense()
 
 N = 1000
+T = 2
 p = []
+# run twice means all the following steps is execute twice,
+# in another word, all the particles move, sense, and resample twice
 for i in range(N):
     x = robot()
     x.set_noise(0.05, 0.05, 5.0)
@@ -108,21 +123,29 @@ p = p2
 w = []
 # insert code here!
 for i in range(N):
-    #w.append(p[i].measurement_prob(p[i].sense()))
-    w.append(p[i].measurement_prob(Z)) #why the parament of measurement_prob() is only Z?
-#print w
+    # w.append(p[i].measurement_prob(p[i].sense())) wrong
+    w.append(p[i].measurement_prob(Z))
+    # why the parament of measurement_prob() is only Z?
+    # because Z is the benchmark of Gaussian function
+# print w
 
 #### DON'T MODIFY ANYTHING ABOVE HERE! ENTER CODE BELOW ####
 # You should make sure that p3 contains a list with particles
 # resampled according to their weights.
 # Also, DO NOT MODIFY p.
+''''
 W = sum(w)
 nw = []
 nw.append(w[0] / W)
 for i in range(1 , N):
     nw.append(nw[i - 1] + w[i] / W)
-#print nw
+'''
+# print nw
+
 p3 = []
+
+# my way
+''''
 for i in range(N):
     ran = random.random()
     l = 0
@@ -136,6 +159,19 @@ for i in range(N):
         else:
             p3.append(p[m])
             continue
-        p3.append(p[r])
-print p3
+    p3.append(p[r])
+'''
 
+# his way, his way is not good as in his class show
+# so he doesn't add the weight together to make a circle
+beta = 0.0
+index = int(random.random() * N)
+wm = max(w)
+for i in range(N):
+    beta += random.random() * 2.0 * wm
+    while w[index] < beta:
+        beta -= w[index]
+        index = (index + 1) % N
+    p3.append(p[index])
+
+print p3
