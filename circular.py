@@ -63,7 +63,7 @@ class robot:
         return '[x=%.6s y=%.6s orient=%.6s]' % (str(self.x), str(self.y), str(self.orientation))
 
     # --------
-    # set:
+    # set:  
     #	sets a robot coordinate
     #
 
