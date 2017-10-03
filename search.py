@@ -34,32 +34,34 @@ delta_name = ['^', '<', 'v', '>']
 def search(grid,init,goal,cost):
     row = len(grid)
     col = len(grid[0])
-    open_list = [init]
+    open_list = [[0, init[0], init[1]]]
     # so ugly, change to one list with element of list of three element
-    g_value = [0]
     while len(open_list) != 0:
-        g_min_index = g_value.index(min(g_value))
-        expand = open_list[g_min_index]
+        g_min_index = 0
+        for i in range(1, len(open_list)):
+            if open_list[g_min_index][0] > open_list[i][0]:
+                g_min_index = i
+        next = open_list.pop(g_min_index)
+        g = next[0]
+        x = next[1]
+        y = next[2]
+        grid[x][y] = 1
 
         for i in range(len(delta)):
-            move = delta[i]
-            print expand
-            print move
-            successor = [expand[0] + move[0], expand[1] + move[1]]
-            print successor
-            if successor[0] < 0 or successor[0] > row - 1 or successor[1] < 0 or successor[1] > col - 1:
-                continue
-            elif grid[successor[0]][successor[1]] == 1:
-                continue
-            else:
-                print "expand: " + str(g_value.pop(g_min_index)) + ' ' + str(open_list.pop(g_min_index))
-                open_list.append(successor)
-
-                g_value.append(g_value[g_min_index] + cost)
-
-
-        print expand
+            x2 = x + delta[i][0]
+            y2 = y + delta[i][1]
+            # if the grid is over the board
+            if x2 >= 0 and x2 < row and y2 >= 0 and y2 < col:
+                # if the grid is occupied and is not the goal
+                if grid[x2][y2] == 0 and (x2 != goal[0] or y2 != goal[1]):
+                    grid[x2][y2] = 1
+                    open_list.append([g + cost, x2, y2])
+                # find the goal
+                elif x2 == goal[0] and y2 == goal[1]:
+                    return str([g + cost, x2, y2])
+        print "expand gird: " + str(next)
+        print "open list: " + str(open_list)
 
     return 'fail'
-
-search(grid, init, goal, cost)
+# why my output is wrong?
+print search(grid, init, goal, cost)
