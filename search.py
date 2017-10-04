@@ -21,17 +21,30 @@
 #         [0, 0, 1, 1, 1, 0],
 #         [0, 0, 0, 0, 1, 0]]
 
-grid = [[0, 0, 1, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0],
-        [0, 0, 1, 0, 1, 0],
-        [0, 0, 1, 0, 1, 0],
-        [0, 0, 1, 0, 1, 0]]
+# grid = [[0, 0, 1, 0, 0, 0],
+#         [0, 0, 0, 0, 0, 0],
+#         [0, 0, 1, 0, 1, 0],
+#         [0, 0, 1, 0, 1, 0],
+#         [0, 0, 1, 0, 1, 0]]
+
+grid = [[0, 1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0]]
 
 # grid = [[0, 1, 1, 1, 1],
 #         [0, 1, 0, 0, 0],
 #         [0, 0, 0, 1, 0],
 #         [1, 1, 1, 1, 0],
 #         [0, 0, 0, 1, 0]]
+
+heuristic = [[9, 8, 7, 6, 5, 4],
+             [8, 7, 6, 5, 4, 3],
+             [7, 6, 5, 4, 3, 2],
+             [6, 5, 4, 3, 2, 1],
+             [5, 4, 3, 2, 1, 0]]
+
 # unconnected component, how to do? don't warry, is not have to consider
 init = [0, 0]
 goal = [len(grid) - 1, len(grid[0]) - 1]  # [4, 5]
@@ -50,23 +63,26 @@ def search(grid, init, goal, cost):
     col = len(grid[0])
     open_list = [[0, init[0], init[1]]]
     path = [[' ' for c in range(col)] for r in range(row)]
-    # expand = [[-1 for c in range(col)] for r in range(row)]
-    # expand_number = 0
+    expand = [[-1 for c in range(col)] for r in range(row)]
+    g_value = 0
+
     # print expand
     # what is the order of init of 2D array?is he wrong? mistake col with row? yes, i am right
 
     while len(open_list) != 0:
         g_min_index = 0
         for i in range(1, len(open_list)):
-            if open_list[g_min_index][0] > open_list[i][0]:
+            f_value = open_list[i][0] + heuristic[open_list[i][1]][open_list[i][2]]
+            f_value_min = open_list[g_min_index][0] + heuristic[open_list[g_min_index][1]][open_list[g_min_index][2]]
+            if f_value_min > f_value:
                 g_min_index = i
         next = open_list.pop(g_min_index)
         g = next[0]
         x = next[1]
         y = next[2]
         grid[x][y] = 1
-        # expand_number += 1
-        # expand[x][y] = expand_number
+        expand[x][y] = g_value
+        g_value += 1
 
         for i in range(len(delta)):
             x2 = x + delta[i][0]
@@ -81,13 +97,14 @@ def search(grid, init, goal, cost):
                 # find the goal
                 elif x2 == goal[0] and y2 == goal[1]:
                     path[x2][y2] = delta_name[i]
-                    return path
+                    expand[x2][y2] = g_value
+                    # return path
                     #return str([g + cost, x2, y2])
+                    return str(expand)
         #print "expand gird: " + str(next)
         #print "open list: " + str(open_list)
-                    # return str(expand)
 
-    return path
+    return str(expand)
 
 # return the path, must be the same ? it is ridiculous
 def path(deltas):
@@ -103,5 +120,7 @@ def path(deltas):
 
 
 # why my output is wrong? no
-deltas = search(grid, init, goal, cost)
-print path(deltas)
+
+print search(grid, init, goal, cost)
+#deltas = search(grid, init, goal, cost)
+#print path(deltas)
