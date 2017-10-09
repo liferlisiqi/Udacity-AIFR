@@ -93,33 +93,76 @@ class Robot(object):
         return '[x=%.5f y=%.5f orient=%.5f]' % (self.x, self.y, self.orientation)
 
 
-# ------------------------------------------------------------------------
-#
-# run - does a single control run
+def make_robot():
+    """
+    Resets the robot back to the initial position and drift.
+    You'll want to call this after you call `run`.
+    """
+    robot = Robot()
+    robot.set(0, 1, 0)
+    robot.set_steering_drift(10 / 180 * np.pi)
+    return robot
 
-def run(myrobot, tau_p, tau_d, tau_i, n = 300, speed = 1.0):
+def run(myrobot, params, n = 100, speed = 1.0):
     x_trajectory = [myrobot.x]
     y_trajectory = [myrobot.y]
     int_cte = 0.0
-    cte = myrobot.y
+    pre_cte = myrobot.y
+    error = 0.0
     # systematic bias, can not be done by proportional and differential, can be solved by integral
     # PID control, why make a circle?
-    myrobot.set_steering_drift(10.0 / 180.0 * np.pi)
-    for i in range(n):
+    for i in range(2 * n):
         # a big bug here, the differential is zero all the time
-        diff_cte = myrobot.y - cte
         cte = myrobot.y
-        int_cte += myrobot.y
-        steer = -tau_p * cte - tau_d * diff_cte - tau_i * int_cte
+        diff_cte = cte - pre_cte
+        pre_cte = cte
+        int_cte += cte
+        steer = -params[0] * pre_cte - params[1] * diff_cte - params[2] * int_cte
         myrobot = myrobot.move(steer, speed)
         x_trajectory.append(myrobot.x)
         y_trajectory.append(myrobot.y)
-    return x_trajectory, y_trajectory
+        if i > n:
+            error += cte**2
+    return x_trajectory, y_trajectory, error / n
 
+# Make this tolerance bigger if you are timing out!
+# don not understand, what are you talking about?
+def twiddle(tol=0.2):
+    # TODO: Add code here
+    # Don't forget to call `make_robot` before you call `run`!
+    p = [0, 0, 0]
+    dp = [1, 1, 1]
+    robot = make_robot()
+    x_trajectory, y_trajectory, best_err = run(robot, p)
 
-robot = Robot()
-robot.set(0, 1, 0)
-x_trajectory, y_trajectory = run(robot, 0.2, 3.0, 0.01)
+    it = 0
+    while sum(dp) > tol:
+        print("Iteration {}, parameters {},best error = {}".format(it, p, best_err))
+        for i in range(len(p)):
+            p[i] += dp[i]
+            robot = make_robot()
+            x_trajectory, y_trajectory, err = run(robot, p)
+
+            if err < best_err:
+                best_err = err
+                dp[i] *= 1.1
+            else:
+                p[i] -= 2 * dp[i]
+                robot = make_robot()
+                x_trajectory, y_trajectory, err = run(robot, p)
+
+                if err < best_err:
+                    best_err = err
+                    dp[i] *= 1.1
+                else:
+                    p[i] += dp[i]
+                    dp[i] *= 0.9
+        it += 1
+    return p
+
+params = twiddle()
+robot = make_robot()
+x_trajectory, y_trajectory, error = run(robot, params)
 n = len(x_trajectory)
 
 plt.plot(x_trajectory, y_trajectory, 'g', label='PD controller')
