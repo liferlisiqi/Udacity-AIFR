@@ -132,31 +132,34 @@ def twiddle(tol=0.2):
     # Don't forget to call `make_robot` before you call `run`!
     p = [0, 0, 0]
     dp = [1, 1, 1]
+    #dp[1] = 0.0
     robot = make_robot()
-    x_trajectory, y_trajectory, best_err = run(robot, p)
+    best_error = run(robot, p)[2]
+    # there are three parameters, how can only get one?
+    # only a brackets will work
 
     it = 0
     while sum(dp) > tol:
-        print("Iteration {}, parameters {},best error = {}".format(it, p, best_err))
-        for i in range(len(p)):
+        print("Iteration {}, parameters {},best error = {}".format(it, p, best_error))
+        for i in range(3):
             p[i] += dp[i]
             robot = make_robot()
-            x_trajectory, y_trajectory, err = run(robot, p)
+            error = run(robot, p)[2]
 
-            if err < best_err:
-                best_err = err
-                dp[i] *= 1.1
-            else:
+            if error < best_error:  # if better
+                best_error = error  # update best_error
+                dp[i] *= 1.1        # increment dp[i]
+            else:               # worse, try the other direction
                 p[i] -= 2 * dp[i]
                 robot = make_robot()
-                x_trajectory, y_trajectory, err = run(robot, p)
+                error = run(robot, p)[2]  # the other direction try
 
-                if err < best_err:
-                    best_err = err
-                    dp[i] *= 1.1
+                if error < best_error:  # if better
+                    best_error = error  # update best_error
+                    dp[i] *= 1.1        # increment dp[i]
                 else:
-                    p[i] += dp[i]
-                    dp[i] *= 0.9
+                    p[i] += dp[i]   # two directions will both be worse, it seams that dp[i] is too big
+                    dp[i] *= 0.9    # so decrease dp[i]
         it += 1
     return p
 
