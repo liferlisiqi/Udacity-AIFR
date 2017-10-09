@@ -97,25 +97,32 @@ class Robot(object):
 #
 # run - does a single control run
 
-def run(robot, tau_p, tau_d, n=100, speed=1.0):
-    x_trajectory = [robot.x]
-    y_trajectory = [robot.y]
+def run(myrobot, tau_p, tau_d, tau_i, n = 300, speed = 1.0):
+    x_trajectory = [myrobot.x]
+    y_trajectory = [myrobot.y]
+    int_cte = 0.0
+    cte = myrobot.y
+    # systematic bias, can not be done by proportional and differential, can be solved by integral
+    # PID control, why make a circle?
+    myrobot.set_steering_drift(10.0 / 180.0 * np.pi)
     for i in range(n):
-        cte = robot.y
-        cte2 = y_trajectory[-1]
-        steer = -tau_p * cte - tau_d * (cte - cte2)
-        robot = robot.move(steer, speed)
-        x_trajectory.append(robot.x)
-        y_trajectory.append(robot.y)
+        # a big bug here, the differential is zero all the time
+        diff_cte = myrobot.y - cte
+        cte = myrobot.y
+        int_cte += myrobot.y
+        steer = -tau_p * cte - tau_d * diff_cte - tau_i * int_cte
+        myrobot = myrobot.move(steer, speed)
+        x_trajectory.append(myrobot.x)
+        y_trajectory.append(myrobot.y)
     return x_trajectory, y_trajectory
 
 
 robot = Robot()
 robot.set(0, 1, 0)
-x_trajectory, y_trajectory = run(robot, 0.1, 3.0)
+x_trajectory, y_trajectory = run(robot, 0.2, 3.0, 0.01)
 n = len(x_trajectory)
 
 plt.plot(x_trajectory, y_trajectory, 'g', label='PD controller')
 plt.plot(x_trajectory, np.zeros(n), 'r', label='reference')
-plt.show("PD")
 plt.legend()
+plt.show()
