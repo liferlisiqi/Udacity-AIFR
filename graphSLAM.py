@@ -306,11 +306,25 @@ def doit(initial_pos, move1, move2, Z0, Z1, Z2):
         omega.value[i + 1][i] = -1
         omega.value[i + 1][i + 1] += 1
 
-    mu = omega.inverse().__mul__(xi)
+    omega = omega.expand(4, 4, [0, 1, 2], [0, 1, 2])
+    xi = xi.expand(4, 1, [0, 1, 2], [0])
+
+    for i in range(3):
+        omega.value[i][i] += 1
+        omega.value[3][3] += 1
+        omega.value[i][3] = -1
+        omega.value[3][i] = -1
+
+    xi.value[0][0] -= Z0
+    xi.value[1][0] -= Z1
+    xi.value[2][0] -= Z2
+    xi.value[3][0] = Z0 + Z1 + Z2
+
     omega.show("omega: ")
     xi.show("xi: ")
+    mu = omega.inverse().__mul__(xi)
     return mu
 
-doit(-3, 5, 3, 10, 5, 2).show("mu: ")
+doit(-3, 5, 3, 10, 5, 1).show("mu: ")
 
 
