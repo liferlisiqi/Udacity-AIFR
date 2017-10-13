@@ -535,6 +535,7 @@ def print_result(N, num_landmarks, result):
 ############## ENTER YOUR CODE BELOW HERE ###################
 
 def slam(data, N, num_landmarks, motion_noise, measurement_noise):
+    # the motion_noise and measurement_noise is in actually the weight of motion and measurement
     omega = matrix([[0 for i in range(2 * (N + num_landmarks))] for j in range(2 * (N + num_landmarks))])
     xi = matrix([[0] for i in range(2 * (N + num_landmarks))])
 
@@ -549,25 +550,25 @@ def slam(data, N, num_landmarks, motion_noise, measurement_noise):
         # motions
         # omega
         # px(i) and px(i+1)
-        omega.value[2 * i][2 * i] += 1
-        omega.value[2 * (i + 1)][2 * (i + 1)] += 1
-        omega.value[2 * i][2 * (i + 1)] -= 1
-        omega.value[2 * (i + 1)][2 * i] -= 1
+        omega.value[2 * i][2 * i] += 1 / motion_noise
+        omega.value[2 * (i + 1)][2 * (i + 1)] += 1 / motion_noise
+        omega.value[2 * i][2 * (i + 1)] -= 1 / motion_noise
+        omega.value[2 * (i + 1)][2 * i] -= 1 / motion_noise
         # py(i) and py(i+1)
-        omega.value[2 * i + 1][2 * i + 1] += 1
-        omega.value[2 * (i + 1) + 1][2 * (i + 1) + 1] += 1
-        omega.value[2 * i + 1][2 * (i + 1) + 1] -= 1
-        omega.value[2 * (i + 1) + 1][2 * i + 1] -= 1
+        omega.value[2 * i + 1][2 * i + 1] += 1 / motion_noise
+        omega.value[2 * (i + 1) + 1][2 * (i + 1) + 1] += 1 / motion_noise
+        omega.value[2 * i + 1][2 * (i + 1) + 1] -= 1 / motion_noise
+        omega.value[2 * (i + 1) + 1][2 * i + 1] -= 1 / motion_noise
 
         # xi
         motion_x = data[i][1][0]
         motion_y = data[i][1][1]
         # px(i) and px(i+1)
-        xi.value[2 * i][0] -= motion_x
-        xi.value[2 * (i + 1)][0] += motion_x
+        xi.value[2 * i][0] -= motion_x / measurement_noise
+        xi.value[2 * (i + 1)][0] += motion_x / measurement_noise
         # py(i) and py(i+1)
-        xi.value[2 * i + 1][0] -= motion_y
-        xi.value[2 * (i + 1) + 1][0] += motion_y
+        xi.value[2 * i + 1][0] -= motion_y / measurement_noise
+        xi.value[2 * (i + 1) + 1][0] += motion_y / measurement_noise
 
         # measurements
         landmarks = data[i][0]
@@ -575,25 +576,25 @@ def slam(data, N, num_landmarks, motion_noise, measurement_noise):
             k = landmarks[j][0]
             # omega
             # px(i) and lx(k)
-            omega.value[2 * i][2 * i] += 1
-            omega.value[2 * (N + k)][2 * (N + k)] += 1
-            omega.value[2 * i][2 * (N + k)] -= 1
-            omega.value[2 * (N + k)][2 * i] -= 1
+            omega.value[2 * i][2 * i] += 1 / motion_noise
+            omega.value[2 * (N + k)][2 * (N + k)] += 1 / motion_noise
+            omega.value[2 * i][2 * (N + k)] -= 1 / motion_noise
+            omega.value[2 * (N + k)][2 * i] -= 1 / motion_noise
             # py(i) and ly(k)
-            omega.value[2 * i + 1][2 * i + 1] += 1
-            omega.value[2 * (N + k) + 1][2 * (N + k) + 1] += 1
-            omega.value[2 * i + 1][2 * (N + k) + 1] -= 1
-            omega.value[2 * (N + k) + 1][2 * i + 1] -= 1
+            omega.value[2 * i + 1][2 * i + 1] += 1 / motion_noise
+            omega.value[2 * (N + k) + 1][2 * (N + k) + 1] += 1 / motion_noise
+            omega.value[2 * i + 1][2 * (N + k) + 1] -= 1 / motion_noise
+            omega.value[2 * (N + k) + 1][2 * i + 1] -= 1 / motion_noise
 
             # xi
             measure_x = landmarks[j][1]
             measure_y = landmarks[j][2]
             # px(i) and lx(k)
-            xi.value[2 * i][0] -= measure_x
-            xi.value[2 * (N + k)][0] += measure_x
+            xi.value[2 * i][0] -= measure_x / measurement_noise
+            xi.value[2 * (N + k)][0] += measure_x / measurement_noise
             # py(i) and ly(k)
-            xi.value[2 * i + 1][0] -= measure_y
-            xi.value[2 * (N + k) + 1][0] += measure_y
+            xi.value[2 * i + 1][0] -= measure_y / measurement_noise
+            xi.value[2 * (N + k) + 1][0] += measure_y / measurement_noise
 
     omega.show("omega: ")
     xi.show("xi: ")
