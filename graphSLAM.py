@@ -536,6 +536,48 @@ def print_result(N, num_landmarks, result):
 
 def slam(data, N, num_landmarks, motion_noise, measurement_noise):
     mu = matrix([[0] for i in range(2 * (N + num_landmarks))])
+    omega = matrix([[0 for i in range(2 * (N + num_landmarks))] for j in range(2 * (N + num_landmarks))])
+    xi = matrix([[0] for i in range(2 * (N + num_landmarks))])
+
+    # initial
+    omega.value[0][0] = 1
+    omega.value[2][2] = 1
+    xi.value[0][0] = 50.0
+    xi.value[1][0] = 50.0
+
+    # omega and xi for motions
+    for i in range(len(data)):
+        # omega
+        # x(i) and x(i+1)
+        omega.value[2 * i][2 * i] += 1
+        omega.value[2 * (i + 1)][2 * (i + 1)] += 1
+        omega.value[2 * i][2 * (i + 1)] -= 1
+        omega.value[2 * (i + 1)][2 * i] -= 1
+        # y(i) and y(i+1)
+        omega.value[2 * i + 1][2 * i + 1] += 1
+        omega.value[2 * (i + 1) + 1][2 * (i + 1) + 1] += 1
+        omega.value[2 * i + 1][2 * (i + 1) + 1] -= 1
+        omega.value[2 * (i + 1) + 1][2 * i + 1] -= 1
+
+        # xi
+        motion_x = data[i][1][0]
+        motion_y = data[i][1][1]
+        # x(i) and x(i+1)
+        xi.value[2 * i][0] -= motion_x
+        xi.value[2 * (i + 1)][0] += motion_x
+        # y(i) and y(i+1)
+        xi.value[2 * i + 1][0] -= motion_y
+        xi.value[2 * (i + 1) + 1][0] += motion_y
+
+    # omega and xi for measurements
+    # for i in range(3):
+    #     omega.value[i][i] += 1
+    #     omega.value[3][3] += 1
+    #     omega.value[i][3] = -1
+    #     omega.value[3][i] = -1
+
+    omega.show("omega: ")
+    xi.show("xi: ")
 
     return mu  # Make sure you return mu for grading!
 
@@ -548,8 +590,7 @@ motion_noise = 2.0  # noise in robot motion
 measurement_noise = 2.0  # noise in the measurements
 distance = 20.0  # distance by which robot (intends to) move each iteratation
 
-data = make_data(N, num_landmarks, world_size, measurement_range, motion_noise, measurement_noise, distance)
-print data
+# data = make_data(N, num_landmarks, world_size, measurement_range, motion_noise, measurement_noise, distance)
 # result = slam(data, N, num_landmarks, motion_noise, measurement_noise)
 # print_result(N, num_landmarks, result)
 
@@ -699,7 +740,7 @@ test_data2 = \
 
 ### Uncomment the following three lines for test case 1 ###
 
-# result = slam(test_data1, 20, 5, 2.0, 2.0)
+result = slam(test_data1, 20, 5, 2.0, 2.0)
 # print_result(20, 5, result)
 # print result
 
