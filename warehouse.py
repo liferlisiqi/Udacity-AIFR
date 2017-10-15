@@ -63,11 +63,11 @@
 # You may use our test function below, solution_check(),
 # to test your code for a variety of input parameters.
 
-warehouse = [[1, 2, 3],
-             [0, 0, 0],
-             [0, 0, 0]]
-dropzone = [2, 0]
-todo = [2, 1]
+# warehouse = [[1, 2, 3],
+#              [0, 0, 0],
+#              [0, 0, 0]]
+# dropzone = [2, 0]
+# todo = [2, 1]
 
 delta_list = [[-1, 0],   # up
               [0, -1],   # left
@@ -80,30 +80,12 @@ delta_list = [[-1, 0],   # up
 
 cost_list = [1, 1, 1, 1, 1.5, 1.5, 1.5, 1.5]
 
-# ------------------------------------------
-# coordinate - Returns list of boxs to be taken
-#
-def coordinate(warehouse, todo):
-    boxs = [[] for i in range(len(warehouse) * len(warehouse[0]))]
-    boxs_todo = []
-    # find the coordinate of each boxs
-    for i in range(len(warehouse)):
-        for j in range(len(warehouse[0])):
-            if warehouse[i][j] != 0:
-                boxs[warehouse[i][j]] = [i, j]
-
-    # find the coordinate of the boxs to be taken, and collected in boxs_todo list
-    for i in range(len(todo)):
-        boxs_todo.append(boxs[todo[i]])
-
-    return boxs_todo
-
-def heuristic(warehouse, goal):
+def heuristic(warehouse, start):
     h = [[0 for i in range(len(warehouse[0]))] for j in range(len(warehouse))]
     for i in range(len(warehouse)):
         for j in range(len(warehouse[0])):
-            delx = abs(i - goal[0])
-            dely = abs(j - goal[1])
+            delx = abs(i - start[0])
+            dely = abs(j - start[1])
             if delx * dely == 0:
                 h[i][j] = delx + dely
             else:
@@ -116,54 +98,54 @@ def heuristic(warehouse, goal):
 def search(warehouse, start, goal):
     row = len(warehouse)
     col = len(warehouse[0])
-    open = [[0, start[0], start[1]]]
+    open = [[0, 0, start[0], start[1]]] # f(x, y) = g(x, y) + h(x, y), g(x, y), x, y
     expand = [[-1 for c in range(col)] for r in range(row)]
-    g_value = 0
-
-    h = heuristic(warehouse, goal)
+    expand[start[0]][start[1]] = 0
+    close = [[0 for c in range(col)] for r in range(row)]
+    h = heuristic(warehouse, start)
 
     while len(open) != 0:
         g_min_index = 0
         for i in range(1, len(open)):
-            f_value = open[i][0] + h[open[i][1]][open[i][2]]
-            f_value_min = open[g_min_index][0] + h[open[g_min_index][1]][open[g_min_index][2]]
-            if f_value_min > f_value:
+            if open[i][1] < open[g_min_index][1]:
                 g_min_index = i
         next = open.pop(g_min_index)
-        g = next[0]
-        x = next[1]
-        y = next[2]
-        warehouse[x][y] = 1
-        g_value += 1
-        expand[x][y] = g_value
+        g = next[1]
+        x = next[2]
+        y = next[3]
+        close[x][y] = 1
 
         for i in range(len(delta_list)):
             x2 = x + delta_list[i][0]
             y2 = y + delta_list[i][1]
             # if the grid is over the board
             if x2 >= 0 and x2 < row and y2 >= 0 and y2 < col:
-                # if the grid is occupied and is not the goal
-                if warehouse[x2][y2] == 0 and (x2 != goal[0] or y2 != goal[1]):
-                    warehouse[x2][y2] = 1
-                    open.append([g + cost_list[i], x2, y2])
+                # not find the goal
+                if warehouse[x2][y2] != goal:
+                    # if the grid is not box and not occupied
+                    if warehouse[x2][y2] == 0 and close[x2][y2] == 0:
+                        g2 = g + cost_list[i]
+                        f2 = g2 + h[x2][y2]
+                        expand[x2][y2] = g2
+                        open.append([f2, g2, x2, y2])
+                        close[x2][y2] = 1
                 # find the goal
-                elif x2 == goal[0] and y2 == goal[1]:
-                    expand[x2][y2] = g_value
-                    return str(expand)
+                else:
+                    expand[x2][y2] = g + cost_list[i]
+                    return x2, y2, expand[x2][y2]
 
-    return 0
+    return expand[goal[0]][goal[1]]
 
 # ------------------------------------------
 # plan - Returns cost to take all boxes in the todolist to dropzone
 #
 def plan(warehouse, dropzone, todo):
     cost = 0
-    boxs = coordinate(warehouse, todo)
-    for i in range(len(boxs)):
+    for i in range(len(todo)):
+        x, y, g = search(warehouse, dropzone, todo[i])
         # go and back
-        cost += 2 * search(warehouse, dropzone, boxs[i])
-        warehouse[boxs[i][0]][boxs[i][1]] = 0
-
+        cost += 2 * g
+        warehouse[x][y] = 0
     return cost
 
 
