@@ -55,13 +55,83 @@ from matrix import *
 import random
 import turtle
 
+def compute_circle_center(measurement1, measurement2, measurement3):
+    #  last two measurement and the measurement at present
+    x1 = measurement1[0]
+    y1 = measurement1[1]
+    x2 = measurement2[0]
+    y2 = measurement2[1]
+    x3 = measurement3[0]
+    y3 = measurement3[1]
+
+    # the middle point between the adjacent two measurement
+    m1x = (x1 + x2) / 2.0
+    m1y = (y1 + y2) / 2.0
+    m2x = (x2 + x3) / 2.0
+    m2y = (y2 + y3) / 2.0
+
+    # two perpendicular bisector
+    if abs(y1 - y2) < 0.00001:
+        k1 = (x2 - x1) / 0.00001
+    else:
+        k1 = (x2 - x1) / (y1 - y2)
+
+    if abs(y2 - y3) < 0.00001:
+        k2 = (x3 - x2) / 0.00001
+    else:
+        k2 = (x3 - x2) / (y2 - y3)
+
+    b1 = m1y - m1x * k1
+    b2 = m2y - m2x * k2
+
+    # the coordiante of the rotate circle
+    if abs(k1 - k2) < 0.00001:
+        cx = (b2 - b1) / 0.00001
+    else:
+        cx = (b2 - b1) / (k1 - k2)
+    cy = k1 * cx + b1
+
+    # the redius
+    r1 = sqrt((cx - x1) ** 2 + (cy - y1) ** 2)
+    r2 = sqrt((cx - x2) ** 2 + (cy - y2) ** 2)
+    r3 = sqrt((cx - x3) ** 2 + (cy - y3) ** 2)
+    r = (r1 + r2 + r3) /3
+
+    # the steering angle: alpha
+    alpha1 = atan2(0.5, r1)
+    alpha2 = atan2(0.5, r2)
+    alpha3 = atan2(0.5, r3)
+    alpha = ((alpha1 + alpha2 + alpha3) / 3) % (2 * pi)
+
+    # the turning angle: beta
+    beta1 = (acos((sqrt((cx - m1x) ** 2 + (cy - m1y) ** 2)) / (r1 + r2) / 2) * 2) % (2 * pi)
+    beta2 = (acos((sqrt((cx - m2x) ** 2 + (cy - m2y) ** 2)) / (r2 + r3) / 2) * 2) % (2 * pi)
+    beta = ((beta1 + beta2) / 2) % (2 * pi)
+
+    # the distance
+    d1 = beta1 * (r1 + r2) / 2
+    d2 = beta2 * (r2 + r3) / 2
+    d = (d1 + d2) / 2
+
+    return [cx, cy], r, alpha, beta, d
+
 # This function will have to be called multiple times before you
 # have enough information to accurately predict the next position.
 def estimate_next_pos(measurement, OTHER):
-    if not OTHER: # this is the first measurement
-        OTHER = measurement
-    xy_estimate = OTHER
-    return xy_estimate, OTHER
+    if not OTHER:  # this is the first measurement
+        OTHER = [measurement]
+    if len(OTHER) == 1:  # this is the second measurement
+        OTHER.append(measurement)
+    cc, r, alpha, beta, d = compute_circle_center(OTHER[0], OTHER[1], measurement)
+    theta = ((asin((measurement[0] - cc[0]) / r) + acos((cc[1] - measurement[1]) / r)) / 2) % (2 * pi)
+
+    x_estimate = measurement[0] + r * (sin(beta + theta) - sin(theta))
+    y_estimate = measurement[1] + r * (cos(theta) - cos(beta + theta))
+
+    OTHER.pop(0)
+    OTHER.append(measurement)
+    # must return xy_estimate, OTHER
+    return (x_estimate, y_estimate), OTHER
 
 # A helper function you may find useful.
 def distance_between(point1, point2):
