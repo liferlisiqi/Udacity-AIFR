@@ -104,8 +104,10 @@ def compute_circle_center(measurement1, measurement2, measurement3):
     alpha = ((alpha1 + alpha2 + alpha3) / 3) % (2 * pi)
 
     # the turning angle: beta
-    beta1 = (acos((sqrt((cx - m1x) ** 2 + (cy - m1y) ** 2)) / (r1 + r2) / 2) * 2) % (2 * pi)
-    beta2 = (acos((sqrt((cx - m2x) ** 2 + (cy - m2y) ** 2)) / (r2 + r3) / 2) * 2) % (2 * pi)
+    h1 = sqrt((cx - m1x) ** 2 + (cy - m1y) ** 2)
+    h2 = sqrt((cx - m2x) ** 2 + (cy - m2y) ** 2)
+    beta1 = (acos(h1 / r) * 2) % (2 * pi)
+    beta2 = (acos(h2 / r) * 2) % (2 * pi)
     beta = ((beta1 + beta2) / 2) % (2 * pi)
 
     # the distance
@@ -120,8 +122,11 @@ def compute_circle_center(measurement1, measurement2, measurement3):
 def estimate_next_pos(measurement, OTHER):
     if not OTHER:  # this is the first measurement
         OTHER = [measurement]
+        return measurement, OTHER
     if len(OTHER) == 1:  # this is the second measurement
         OTHER.append(measurement)
+        return measurement, OTHER
+
     cc, r, alpha, beta, d = compute_circle_center(OTHER[0], OTHER[1], measurement)
     theta = ((asin((measurement[0] - cc[0]) / r) + acos((cc[1] - measurement[1]) / r)) / 2) % (2 * pi)
 
@@ -181,8 +186,10 @@ def demo_grading(estimate_next_pos_fcn, target_bot, OTHER = None):
         ctr += 1
         measurement = target_bot.sense()
         position_guess, OTHER = estimate_next_pos_fcn(measurement, OTHER)
+        print("guess: " + str(position_guess))
         target_bot.move_in_circle()
         true_position = (target_bot.x, target_bot.y)
+        print("true: " + str(true_position))
         error = distance_between(position_guess, true_position)
         if error <= distance_tolerance:
             print "You got it right! It took you ", ctr, " steps to localize."
@@ -208,6 +215,8 @@ def demo_grading(estimate_next_pos_fcn, target_bot, OTHER = None):
 # How the robot class behaves.
 test_target = robot(2.1, 4.3, 0.5, 2 * pi / 34.0, 1.5)  # x, y, heading, turning, distance
 test_target.set_noise(0.0, 0.0, 0.0)  # no noise
+# [2.1, 4.3], [3.26, 5.25], [4.23, 6.39], [4.97, 7.70], [5.46, 9.12]
+# [5.68, 10.60], [5.62, 12.10], [5.29, 13.56], [4.69, 14.94], [3.86, 16.18]
 # measurement_noise = 0.05 * test_target.distance
 # test_target.set_noise(0.0, 0.0, measurement_noise)
 
