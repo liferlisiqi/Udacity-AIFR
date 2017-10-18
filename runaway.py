@@ -127,14 +127,33 @@ def estimate_next_pos(measurement, OTHER):
         OTHER.append(measurement)
         return measurement, OTHER
 
-    cc, r, alpha, beta, d = compute_circle_center(OTHER[0], OTHER[1], measurement)
-    theta = ((asin((measurement[0] - cc[0]) / r) + acos((cc[1] - measurement[1]) / r)) / 2) % (2 * pi)
+    if len(OTHER) == 2:  # this is the third measurement
+        cc, r, alpha, beta, d = compute_circle_center(OTHER[0], OTHER[1], measurement)
+        theta = ((asin((measurement[0] - cc[0]) / r) + acos((cc[1] - measurement[1]) / r)) / 2) % (2 * pi)
+        x_estimate = measurement[0] + r * (sin(beta + theta) - sin(theta))
+        y_estimate = measurement[1] + r * (cos(theta) - cos(beta + theta))
+        OTHER.pop(0)
+        OTHER.append(measurement)
+        OTHER.append([cc, r, alpha, beta, theta, d])
+        return (x_estimate, y_estimate), OTHER
 
+    cc, r, alpha, beta, d = compute_circle_center(OTHER[0], OTHER[1], measurement)
+    cc[0] = 0.8 * OTHER[2][0][0] + 0.2 * cc[0]
+    cc[1] = 0.8 * OTHER[2][0][1] + 0.2 * cc[1]
+    r = 0.8 * OTHER[2][1] + 0.2 * r
+    alpha = 0.8 * OTHER[2][2] + 0.2 * alpha
+    beta = 0.8 * OTHER[2][3] + 0.2 * beta
+    d = 0.8 * OTHER[2][5] + 0.2 * d
+
+    thetax = asin((measurement[0] - cc[0]) / r)
+    thetay = acos((cc[1] - measurement[1]) / r)
+    theta = ((thetax + thetay) / 2) % (2 * pi)
     x_estimate = measurement[0] + r * (sin(beta + theta) - sin(theta))
     y_estimate = measurement[1] + r * (cos(theta) - cos(beta + theta))
+    OTHER[0] = OTHER[1]
+    OTHER[1] = measurement
+    OTHER[2] = [cc, r, alpha, beta, theta, d]
 
-    OTHER.pop(0)
-    OTHER.append(measurement)
     # must return xy_estimate, OTHER
     return (x_estimate, y_estimate), OTHER
 
@@ -214,10 +233,10 @@ def demo_grading(estimate_next_pos_fcn, target_bot, OTHER = None):
 # This is how we create a target bot. Check the robot.py file to understand
 # How the robot class behaves.
 test_target = robot(2.1, 4.3, 0.5, 2 * pi / 34.0, 1.5)  # x, y, heading, turning, distance
-test_target.set_noise(0.0, 0.0, 0.0)  # no noise
+# test_target.set_noise(0.0, 0.0, 0.0)  # no noise
 # [2.1, 4.3], [3.26, 5.25], [4.23, 6.39], [4.97, 7.70], [5.46, 9.12]
 # [5.68, 10.60], [5.62, 12.10], [5.29, 13.56], [4.69, 14.94], [3.86, 16.18]
-# measurement_noise = 0.05 * test_target.distance
-# test_target.set_noise(0.0, 0.0, measurement_noise)
+measurement_noise = 0.05 * test_target.distance
+test_target.set_noise(0.0, 0.0, measurement_noise)
 
 demo_grading(estimate_next_pos, test_target)
