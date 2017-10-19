@@ -25,21 +25,101 @@ from math import *
 from matrix import *
 import random
 
+def compute_circle(measurement1, measurement2, measurement3):
+    #  last two measurement and the measurement at present
+    x1 = measurement1[0]
+    y1 = measurement1[1]
+    x2 = measurement2[0]
+    y2 = measurement2[1]
+    x3 = measurement3[0]
+    y3 = measurement3[1]
+
+    # the middle point between the adjacent two measurement
+    m1x = (x1 + x2) / 2.0
+    m1y = (y1 + y2) / 2.0
+    m2x = (x2 + x3) / 2.0
+    m2y = (y2 + y3) / 2.0
+
+    # two perpendicular bisector
+    if abs(y1 - y2) < 0.00001: # bug
+        k1 = (x2 - x1) / 0.00001
+    else:
+        k1 = (x2 - x1) / (y1 - y2)
+
+    if abs(y2 - y3) < 0.00001: # bug
+        k2 = (x3 - x2) / 0.00001
+    else:
+        k2 = (x3 - x2) / (y2 - y3)
+
+    b1 = m1y - m1x * k1
+    b2 = m2y - m2x * k2
+
+    # the coordiante of the rotate circle
+    if abs(k1 - k2) < 0.00001:
+        cx = (b2 - b1) / 0.00001
+    else:
+        cx = (b2 - b1) / (k1 - k2)
+    cy = k1 * cx + b1
+
+    # the redius
+    r1 = sqrt((cx - x1) ** 2 + (cy - y1) ** 2)
+    r2 = sqrt((cx - x2) ** 2 + (cy - y2) ** 2)
+    r3 = sqrt((cx - x3) ** 2 + (cy - y3) ** 2)
+    r = (r1 + r2 + r3) /3
+
+    # the steering angle: alpha
+    alpha1 = atan2(0.5, r1)
+    alpha2 = atan2(0.5, r2)
+    alpha3 = atan2(0.5, r3)
+    alpha = ((alpha1 + alpha2 + alpha3) / 3) % (2 * pi)
+
+    # the turning angle: beta
+    h1 = sqrt((cx - m1x) ** 2 + (cy - m1y) ** 2)
+    h2 = sqrt((cx - m2x) ** 2 + (cy - m2y) ** 2)
+    beta1 = (acos(h1 / r) * 2) % (2 * pi)
+    beta2 = (acos(h2 / r) * 2) % (2 * pi)
+    beta = ((beta1 + beta2) / 2) % (2 * pi)
+
+    # the distance
+    d1 = beta1 * (r1 + r2) / 2
+    d2 = beta2 * (r2 + r3) / 2
+    d = (d1 + d2) / 2
+
+    return cx, cy, r, alpha, beta, d
 
 def next_move(hunter_position, hunter_heading, target_measurement, max_distance, OTHER=None):
-    if not OTHER:  # first time calling this function, set up my OTHER variables.
-        measurements = [target_measurement]
-        OTHER = (measurements)  # now I can keep track of history
-    else:  # not the first time, update my history
+    if not OTHER: # first two time return
+        OTHER = ([target_measurement], [0.0 for i in range(6)])  # now I can keep track of history
+        heading_to_target = get_heading(hunter_position, target_measurement)
+        turning = heading_to_target - hunter_heading
+        return turning, max_distance, OTHER
+
+    if len(OTHER[0]) > 1:
         OTHER[0].append(target_measurement)
-        measurements = OTHER  # now I can always refer to these variables
+        cx, cy, r, alpha, beta, d = compute_circle(OTHER[0][-3], OTHER[0][-2], OTHER[0][-1])
+        print (cx, cy, r, alpha, beta, d)
+        if abs(target_measurement[1] - cy) < 0.00001:
+            if target_measurement[1] - cy < 0:
+                theta = atan2(target_measurement[0] - cx, 0.00001)
+            else:
+                theta = atan2(target_measurement[0] - cx, -0.00001)
+        else:
+            theta = atan2(target_measurement[0] - cx, cy - target_measurement[1])
+        print (theta)
+        target_next_x = target_measurement[0] + r * (sin(beta + theta) - sin(theta))
+        target_next_y = target_measurement[1] + r * (cos(theta) - cos(beta + theta))
+        heading_to_target = get_heading(hunter_position, (target_next_x, target_next_y))
+        turning = heading_to_target - hunter_heading
+        distance = distance_between((target_next_x, target_next_y), hunter_position)
+        if distance > max_distance:
+            distance = max_distance
+        return turning, distance, OTHER
 
-    heading_to_target = get_heading(hunter_position, target_measurement)
-    heading_difference = heading_to_target - hunter_heading
-    turning = heading_difference  # turn towards the target
-    distance = max_distance  # full speed ahead!
-    return turning, distance, OTHER
-
+    else:  # the second time
+        OTHER[0].append(target_measurement)
+        heading_to_target = get_heading(hunter_position, target_measurement)
+        turning = heading_to_target - hunter_heading
+        return turning, max_distance, OTHER
 
 def distance_between(point1, point2):
     """Computes distance between point1 and point2. Points are (x, y) pairs."""
@@ -138,7 +218,7 @@ target = robot(0.0, 10.0, 0.0, 2*pi / 30, 1.5) # x, y, heading, turning, distanc
 
 hunter = robot(-10.0, -10.0, 0.0)
 
-print demo_grading(hunter, target, naive_next_move)
+print demo_grading(hunter, target, next_move)
 
 
 
