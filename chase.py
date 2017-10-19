@@ -19,6 +19,19 @@
 # Your function will return the amount you want your bot to turn, the
 # distance you want your bot to move, and the OTHER variable, with any
 # information you want to keep track of.
+#
+# ----------
+# Part Four
+#
+# Again, you'll track down and recover the runaway Traxbot.
+# But this time, your speed will be about the same as the runaway bot.
+# This may require more careful planning than you used last time.
+#
+# ----------
+# YOUR JOB
+#
+# Complete the next_move function, similar to how you did last time.
+#
 
 from robot import *
 from math import *
@@ -41,13 +54,19 @@ def compute_circle(measurement1, measurement2, measurement3):
     m2y = (y2 + y3) / 2.0
 
     # two perpendicular bisector
-    if abs(y1 - y2) < 0.00001: # bug
-        k1 = (x2 - x1) / 0.00001
+    if abs(y1 - y2) < 0.00001:  # bug
+        if y1 - y2 > 0:
+            k1 = (x2 - x1) / 0.00001
+        else:
+            k1 = -(x2 - x1) / 0.00001
     else:
         k1 = (x2 - x1) / (y1 - y2)
 
-    if abs(y2 - y3) < 0.00001: # bug
-        k2 = (x3 - x2) / 0.00001
+    if abs(y2 - y3) < 0.00001:  # bug
+        if y2 - y3 > 0:
+            k2 = (x3 - x2) / 0.00001
+        else:
+            k2 = -(x3 - x2) / 0.00001
     else:
         k2 = (x3 - x2) / (y2 - y3)
 
@@ -80,12 +99,21 @@ def compute_circle(measurement1, measurement2, measurement3):
     beta2 = (acos(h2 / r) * 2) % (2 * pi)
     beta = ((beta1 + beta2) / 2) % (2 * pi)
 
+    # the oriented angel: theta
+    if abs(y3 - cy) < 0.00001:
+        if y3 - cy < 0:
+            theta = atan2(x3 - cx, 0.00001) % (2 * pi)
+        else:
+            theta = atan2(x3 - cx, -0.00001) % (2 * pi)
+    else:
+        theta = atan2(x3 - cx, cy - y3) % (2 * pi)
+
     # the distance
     d1 = beta1 * (r1 + r2) / 2
     d2 = beta2 * (r2 + r3) / 2
     d = (d1 + d2) / 2
 
-    return cx, cy, r, alpha, beta, d
+    return cx, cy, r, alpha, beta, theta, d
 
 def next_move(hunter_position, hunter_heading, target_measurement, max_distance, OTHER=None):
     if not OTHER: # first two time return
@@ -96,16 +124,8 @@ def next_move(hunter_position, hunter_heading, target_measurement, max_distance,
 
     if len(OTHER[0]) > 1:
         OTHER[0].append(target_measurement)
-        cx, cy, r, alpha, beta, d = compute_circle(OTHER[0][-3], OTHER[0][-2], OTHER[0][-1])
-        print (cx, cy, r, alpha, beta, d)
-        if abs(target_measurement[1] - cy) < 0.00001:
-            if target_measurement[1] - cy < 0:
-                theta = atan2(target_measurement[0] - cx, 0.00001)
-            else:
-                theta = atan2(target_measurement[0] - cx, -0.00001)
-        else:
-            theta = atan2(target_measurement[0] - cx, cy - target_measurement[1])
-        print (theta)
+        cx, cy, r, alpha, beta, theta, d = compute_circle(OTHER[0][-3], OTHER[0][-2], OTHER[0][-1])
+        print (cx, cy, r, alpha, beta, theta, d)
         target_next_x = target_measurement[0] + r * (sin(beta + theta) - sin(theta))
         target_next_y = target_measurement[1] + r * (cos(theta) - cos(beta + theta))
         heading_to_target = get_heading(hunter_position, (target_next_x, target_next_y))
@@ -121,6 +141,36 @@ def next_move(hunter_position, hunter_heading, target_measurement, max_distance,
         turning = heading_to_target - hunter_heading
         return turning, max_distance, OTHER
 
+def plan_move(hunter_position, hunter_heading, target_measurement, max_distance, OTHER=None):
+    if not OTHER: # first two time return
+        OTHER = ([target_measurement], [0.0 for i in range(6)])  # now I can keep track of history
+        return 0.0, 0.0, OTHER
+
+    if len(OTHER[0]) > 1:
+        OTHER[0].append(target_measurement)
+        cx, cy, r, alpha, beta, theta, d = compute_circle(OTHER[0][-3], OTHER[0][-2], OTHER[0][-1])
+        print (cx, cy, r, alpha, beta, theta, d)
+
+        target_x = target_measurement[0]
+        target_y = target_measurement[1]
+        n = 0.0
+        while distance_between((target_x, target_y), hunter_position) > n * max_distance:
+            target_x = target_x + r * (sin(beta + theta) - sin(theta))
+            target_y = target_y + r * (cos(theta) - cos(beta + theta))
+            theta += beta
+            n += 1
+
+        heading_to_target = get_heading(hunter_position, (target_x, target_y))
+        turning = heading_to_target - hunter_heading
+        distance = distance_between((target_x, target_y), hunter_position)
+        if distance > max_distance:
+            distance = max_distance
+        return turning, distance, OTHER
+
+    else:  # the second time
+        OTHER[0].append(target_measurement)
+        return 0.0, 0.0, OTHER
+
 def distance_between(point1, point2):
     """Computes distance between point1 and point2. Points are (x, y) pairs."""
     x1, y1 = point1
@@ -132,7 +182,7 @@ def demo_grading(hunter_bot, target_bot, next_move_fcn, OTHER=None):
     """Returns True if your next_move_fcn successfully guides the hunter_bot
     to the target_bot. This function is here to help you understand how we
     will grade your submission."""
-    max_distance = 1.94 * target_bot.distance  # 1.94 is an example. It will change.
+    max_distance = 0.98 * target_bot.distance  # 1.94 is an example. It will change.
     separation_tolerance = 0.02 * target_bot.distance  # hunter must be within 0.02 step size to catch target
     caught = False
     ctr = 0
@@ -218,7 +268,7 @@ target = robot(0.0, 10.0, 0.0, 2*pi / 30, 1.5) # x, y, heading, turning, distanc
 
 hunter = robot(-10.0, -10.0, 0.0)
 
-print demo_grading(hunter, target, next_move)
+print demo_grading(hunter, target, plan_move)
 
 
 
